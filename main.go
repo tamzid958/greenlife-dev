@@ -41,6 +41,7 @@ func main() {
 	}
 }
 
+//new doctor
 func NewDonor(id int, name string, phone string, dob string, blood string, disease bool, rating int) *Donor {
 	return &Donor{Id: id, Name: name, Phone: phone, Dob: dob, Blood: blood, Disease: disease, Rating: rating}
 }
