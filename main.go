@@ -1,47 +1,113 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
+	"log"
+	"math/rand"
+	"net/http"
+	"strconv"
 )
 
 type Donor struct {
-	Id      int    `json:"id"`
+	Id      string `json:"id"`
 	Name    string `json:"name"`
 	Phone   string `json:"phone"`
 	Dob     string `json:"dob"`
 	Blood   string `json:"blood"`
 	Disease bool   `json:"disease"`
-	Rating  int    `json:"rating"`
+	Rating  string `json:"rating"`
 }
 
+var _connStr = "postgres://postgres:12345@localhost/greenlife?sslmode=disable"
+
 var donors = []Donor{
-	{Id: 1, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
-	{Id: 2, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
-	{Id: 3, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
-	{Id: 4, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
-	{Id: 5, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
-	{Id: 6, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
-	{Id: 7, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
-	{Id: 8, Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: 4},
+	{Id: "1", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+	{Id: "2", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+	{Id: "3", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+	{Id: "4", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+	{Id: "5", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+	{Id: "6", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+	{Id: "7", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+	{Id: "8", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"},
+}
+
+func GetDonors(writer http.ResponseWriter, _ *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+
+	db, err := sql.Open("postgres", _connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rows, err := db.Query("SELECT * FROM PUBLIC.donor_donor ORDER BY id ASC")
+
+	fmt.Println(rows)
+
+	json.NewEncoder(writer).Encode(donors)
+}
+func GetDonor(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(request)
+	for _, item := range donors {
+		if item.Id == params["id"] {
+			json.NewEncoder(writer).Encode(item)
+			return
+		}
+	}
+	json.NewEncoder(writer).Encode(&Donor{})
+}
+func CreateDonor(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	var donor Donor
+	_ = json.NewDecoder(request.Body).Decode(&donor)
+	donor.Id = strconv.Itoa(rand.Intn(100000))
+	donors = append(donors, donor)
+	json.NewEncoder(writer).Encode(donor)
+}
+
+func UpdateDonor(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(request)
+	for index, item := range donors {
+		if item.Id == params["id"] {
+			donors = append(donors[:index], donors[index+1:]...)
+			var donor Donor
+			_ = json.NewDecoder(request.Body).Decode(&donor)
+			donor.Id = params["id"]
+			donors = append(donors, donor)
+			json.NewEncoder(writer).Encode(donor)
+			return
+		}
+	}
+	json.NewEncoder(writer).Encode(donors)
+}
+func DeleteDonor(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(request)
+	for index, item := range donors {
+		if item.Id == params["id"] {
+			donors = append(donors[:index], donors[index+1:]...)
+			break
+		}
+	}
+	json.NewEncoder(writer).Encode(donors)
 }
 
 func main() {
-	app := fiber.New()
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
-	})
+	r := mux.NewRouter()
 
-	app.Get("/dev/donors", func(c *fiber.Ctx) error {
-		return c.Status(fiber.StatusOK).JSON(donors)
-	})
+	donors = append(donors, Donor{Id: "9", Name: "name", Phone: "0199999", Dob: "18 Jun 1982", Blood: "AB+", Disease: true, Rating: "4"})
 
-	err := app.Listen(":3000")
-	if err != nil {
-		panic(err)
-	}
-}
+	r.HandleFunc("/dev/donors", GetDonors).Methods("GET")
+	r.HandleFunc("/dev/donors", CreateDonor).Methods("POST")
 
-//new doctor
-func NewDonor(id int, name string, phone string, dob string, blood string, disease bool, rating int) *Donor {
-	return &Donor{Id: id, Name: name, Phone: phone, Dob: dob, Blood: blood, Disease: disease, Rating: rating}
+	r.HandleFunc("/dev/donors/{id:[0-9]+}", GetDonor).Methods("GET")
+	r.HandleFunc("/dev/donors/{id:[0-9]+}", UpdateDonor).Methods("PUT")
+	r.HandleFunc("/dev/donors/{id:[0-9]+}", DeleteDonor).Methods("DELETE")
+
+	log.Fatal(http.ListenAndServe(":8000", r))
 }
