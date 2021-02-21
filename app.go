@@ -16,7 +16,7 @@ type App struct {
 
 func (a *App) Initialize(user, password, dbname string) {
 	connectionString :=
-		fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", user, password, dbname)
+		fmt.Sprintf("postgres://%s:%s@localhost/%s?sslmode=disable", user, password, dbname)
 
 	var err error
 	a.DB, err = sql.Open("postgres", connectionString)
@@ -28,7 +28,7 @@ func (a *App) Initialize(user, password, dbname string) {
 	a.initializeRoutes()
 }
 
-func (a *App) Run(addr string) {
+func (a *App) Run(string) {
 	log.Fatal(http.ListenAndServe(":8010", a.Router))
 }
 
@@ -42,21 +42,4 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
-}
-
-func (a *App) GetDonors(w http.ResponseWriter, r *http.Request) {
-	donors, err := GetDonors(a.DB)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	respondWithJSON(w, http.StatusOK, donors)
-}
-
-func (a *App) initializeRoutes() {
-	a.Router.HandleFunc("/donors", a.GetDonors).Methods("GET")
-	/*a.Router.HandleFunc("/donor", a.CreateDonor).Methods("POST")
-	a.Router.HandleFunc("/donor/{id:[0-9]+}", a.GetDonor).Methods("GET")
-	a.Router.HandleFunc("/donor/{id:[0-9]+}", a.UpdateDonor).Methods("PUT")
-	a.Router.HandleFunc("/donor/{id:[0-9]+}", a.DeleteDonor).Methods("DELETE")*/
 }
