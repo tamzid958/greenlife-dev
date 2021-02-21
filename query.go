@@ -1,10 +1,12 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 func GetDonors(db *sql.DB) ([]Donor, error) {
 	rows, err := db.Query(
-		"SELECT id, phone, dob, blood_group, disease, location FROM PUBLIC.donor_donor")
+		"SELECT donor_donor.id, donor_donor.phone, donor_donor.voter_id, donor_donor.dob, donor_donor.blood_group, donor_donor.disease, donor_donor.location, auth_user.first_name, auth_user.username, auth_user.email FROM PUBLIC.donor_donor INNER JOIN auth_user  on auth_user.id = donor_donor.donor_data_id")
 
 	if err != nil {
 		return nil, err
@@ -15,25 +17,29 @@ func GetDonors(db *sql.DB) ([]Donor, error) {
 	var donors []Donor
 
 	for rows.Next() {
-		var d Donor
-		if err := rows.Scan(&d.Id, &d.Phone, &d.Dob, &d.Blood, &d.Disease, &d.Location); err != nil {
+		var donor Donor
+		if err := rows.Scan(&donor.Id, &donor.Phone, &donor.VoterID, &donor.Dob, &donor.Blood, &donor.Disease, &donor.Location, &donor.FirstName, &donor.UserName, &donor.Email); err != nil {
 			return nil, err
 		}
-		donors = append(donors, d)
+		donors = append(donors, donor)
 	}
 
 	return donors, nil
 }
 
 func (donor *Donor) GetDonor(db *sql.DB) error {
-	return db.QueryRow("SELECT id, phone, dob, blood_group, disease, location FROM PUBLIC.donor_donor WHERE id=$1",
-		donor.Id).Scan(&donor.Id, &donor.Phone, &donor.Dob, &donor.Blood, &donor.Disease, &donor.Location)
+	return db.QueryRow("SELECT donor_donor.id, donor_donor.phone, donor_donor.voter_id, donor_donor.dob, donor_donor.blood_group, donor_donor.disease, donor_donor.location, auth_user.first_name, auth_user.username, auth_user.email FROM PUBLIC.donor_donor INNER JOIN auth_user  on auth_user.id = donor_donor.donor_data_id WHERE donor_donor.id=$1",
+		donor.Id).Scan(&donor.Id, &donor.Phone, &donor.VoterID, &donor.Dob, &donor.Blood, &donor.Disease, &donor.Location, &donor.FirstName, &donor.UserName, &donor.Email)
 }
+
+/*
 
 func (donor *Donor) CreateDonor(db *sql.DB) error {
 	err := db.QueryRow(
-		"INSERT INTO PUBLIC.donor_donor(phone, dob, blood_group, disease, location) VALUES($1, $2, $3, $4, $5) RETURNING id",
-		&donor.Phone, &donor.Dob, &donor.Blood, &donor.Disease, &donor.Location).Scan(&donor.Id)
+	"INSERT INTO PUBLIC.donor_donor(voter_id, phone, dob, blood_group, disease, location, donor_register_date, donor_data_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+	 &donor.VoterID, &donor.Phone, &donor.Dob, &donor.Blood, &donor.Disease, &donor.Location, time.Now(), &donor.UserID).Scan(&donor.Id)
+
+	_, err = db.Exec("UPDATE PUBLIC.donor_userprofile SET role='Donor' WHERE user_data_id=$1", &donor.UserID)
 
 	if err != nil {
 		return err
@@ -44,14 +50,16 @@ func (donor *Donor) CreateDonor(db *sql.DB) error {
 
 func (donor *Donor) UpdateDonor(db *sql.DB) error {
 	_, err :=
-		db.Exec("UPDATE PUBLIC.donor_donor SET phone=$1, dob=$2, blood_group=$3, disease=$4, location=$5  WHERE id=$6",
-			&donor.Phone, &donor.Dob, &donor.Blood, &donor.Disease, &donor.Location, donor.Id)
+		db.Exec("UPDATE PUBLIC.donor_donor SET phone=$1, disease=$2, location=$3  WHERE id=$4",
+			&donor.Phone, &donor.Disease, &donor.Location, donor.Id)
 
 	return err
 }
 
 func (donor *Donor) DeleteDonor(db *sql.DB) error {
-	_, err := db.Exec("DELETE FROM PUBLIC.donor_donor WHERE id=$1", donor.Id)
+
+	var temp = db.QueryRow("SELECT donor_data_id FROM PUBLIC.donor_donor WHERE id=$1", donor.Id)
+	_, err := db.Exec("UPDATE PUBLIC.donor_userprofile SET role='Patient' WHERE user_data_id=$1", temp)
 
 	return err
-}
+} */

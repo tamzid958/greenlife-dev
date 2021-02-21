@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -40,6 +39,7 @@ func (a *App) GetDonor(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, d)
 }
 
+/*
 func (a *App) CreateDonor(w http.ResponseWriter, r *http.Request) {
 	var d Donor
 	decoder := json.NewDecoder(r.Body)
@@ -98,3 +98,4 @@ func (a *App) DeleteDonor(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
 }
+*/
